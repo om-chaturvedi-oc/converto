@@ -1,74 +1,71 @@
-from tkinter import *
-from tkinter import filedialog
-from ttkthemes import themed_tk as tk
-from PIL import Image
-from tkinter import messagebox
+import img2pdf
 
-def add_images():
-    images = filedialog.askopenfilenames(title='Select Images', filetypes=(('PNG files', '*.png'), ('JPG files', '*.jpg'), ('JPEG files', '*.jpeg')))
-    for image in images:
-        file_box.insert(END, image)
-    
-def delete():
-    for item in reversed(file_box.curselection()):
-        file_box.delete(item)
-    
+# opening from filename
+with open("name.pdf","wb") as f:
+	f.write(img2pdf.convert('test.jpg'))
 
-def save_as_pdf():
-    result = filedialog.asksaveasfilename(filetypes=(('PDF files', '*.pdf'), ))
-    if result.endswith('.pdf'):
-        pass
-    else:
-        result = result + '.pdf'
-    if result:
-        list_of_addresses = []
-        im_list = []
-        file_box.select_set(0, END)
-        for item in file_box.curselection():
-            list_of_addresses.append(str(file_box.get(item)))
-        for i in range(len(list_of_addresses)):
-            im = Image.open(list_of_addresses[i])
-            if im.mode == 'RGBA':
-                im = im.convert('RGB')
-            im_list.append(im)
-               
-        im_list[0].save(result, "PDF", resolution = 100.0, save_all = True, append_images = im_list[1:])
+# opening from file handle
+with open("name.pdf","wb") as f1, open("test.jpg") as f2:
+	f1.write(img2pdf.convert(f2))
 
-        messagebox.showinfo("PDF Successfully Generated", "Your PDF was successfully generated.")
-    
+# using in-memory image data
+with open("name.pdf","wb") as f:
+	f.write(img2pdf.convert("\x89PNG...")
 
-screen = tk.ThemedTk()
-screen.get_themes()
-screen.set_theme("breeze")
+# multiple inputs (variant 1)
+with open("name.pdf","wb") as f:
+	f.write(img2pdf.convert("test1.jpg", "test2.png"))
 
-width_of_window = 600
-height_of_window = 440
-screen_width = screen.winfo_screenwidth()
-screen_height = screen.winfo_screenheight()
-x_coordinate = int((screen_width/2) - (width_of_window/2))
-y_coordinate = int((screen_height/2) - (height_of_window/2))
-screen.geometry("{}x{}+{}+{}".format(width_of_window, height_of_window, x_coordinate, y_coordinate))
+# multiple inputs (variant 2)
+with open("name.pdf","wb") as f:
+	f.write(img2pdf.convert(["test1.jpg", "test2.png"]))
 
-screen.title('Image to PDF Converter')
-screen.iconbitmap('PDF-Document.ico')
-screen.config(background='#435B6C')
+# convert all files ending in .jpg inside a directory
+dirname = "/path/to/images"
+imgs = []
+for fname in os.listdir(dirname):
+	if not fname.endswith(".jpg"):
+		continue
+	path = os.path.join(dirname, fname)
+	if os.path.isdir(path):
+		continue
+	imgs.append(path)
+with open("name.pdf","wb") as f:
+	f.write(img2pdf.convert(imgs))
 
-list_frame = Frame(screen)
-list_frame.config(background='#435B6C')
-my_scrollbar = Scrollbar(list_frame, orient=VERTICAL)
-file_box = Listbox(list_frame, width=400, yscrollcommand=my_scrollbar.set, selectmode=MULTIPLE)
-my_scrollbar.config(command=file_box.yview)
-my_scrollbar.pack(side=RIGHT, fill=Y, pady=15)
-list_frame.pack(padx=30)
-file_box.pack(pady=15)
+# convert all files ending in .jpg in a directory and its subdirectories
+dirname = "/path/to/images"
+imgs = []
+for r, _, f in os.walk(dirname):
+	for fname in f:
+		if not fname.endswith(".jpg"):
+			continue
+		imgs.append(os.path.join(r, fname))
+with open("name.pdf","wb") as f:
+	f.write(img2pdf.convert(imgs))
 
-button_select = Button(screen, text='Select Files', command=add_images, background='#1D9151', fg='black', font=('Helvetica', 16), borderwidth=5)
-button_select.pack(pady=15)
 
-button_delete = Button(screen, text='Delete File', command=delete, background='#1D9151', fg='black', font=('Helvetica', 12))
-button_delete.pack(pady=15)
+# convert all files matching a glob
+import glob
+with open("name.pdf","wb") as f:
+	f.write(img2pdf.convert(glob.glob("/path/to/*.jpg")))
 
-button_convert = Button(screen, text='CONVERT TO PDF', command=save_as_pdf, background='#1DB954', fg='black', font=('Helvetica', 18, 'bold'), borderwidth=6)
-button_convert.pack(pady=15)
+# writing to file descriptor
+with open("name.pdf","wb") as f1, open("test.jpg") as f2:
+	img2pdf.convert(f2, outputstream=f1)
 
-screen.mainloop()
+# specify paper size (A4)
+a4inpt = (img2pdf.mm_to_pt(210),img2pdf.mm_to_pt(297))
+layout_fun = img2pdf.get_layout_fun(a4inpt)
+with open("name.pdf","wb") as f:
+	f.write(img2pdf.convert('test.jpg', layout_fun=layout_fun))
+
+# use a fixed dpi of 300 instead of reading it from the image
+dpix = dpiy = 300
+layout_fun = img2pdf.get_fixed_dpi_layout_fun((dpix, dpiy))
+with open("name.pdf","wb") as f:
+	f.write(img2pdf.convert('test.jpg', layout_fun=layout_fun))
+
+# create a PDF/A-1b compliant document by passing an ICC profile
+with open("name.pdf","wb") as f:
+	f.write(img2pdf.convert('test.jpg', pdfa="/usr/share/color/icc/sRGB.icc"))
